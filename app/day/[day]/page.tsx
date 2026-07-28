@@ -1,0 +1,1 @@
+import DayView from "../../../components/DayView"; export default async function Page({params}:{params:Promise<{day:string}>}){const {day}=await params;return <DayView day={Number(day)}/>}
