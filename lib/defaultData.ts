@@ -52,6 +52,8 @@ export const defaultDays: TripDay[] = [
     reservations: [{ name: "Royal Palace Amsterdam", time: "10:25", code: "", note: "운영 여부 확인" }],
     budget: [{ label: "왕궁 입장", amount: "약 €13" }, { label: "식사·카페", amount: "€35~50" }, { label: "교통", amount: "€5 내외" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=ibis+Amsterdam+Centre&destination=Blue+Amsterdam&waypoints=Amsterdam+Centraal%7CDam+Square%7CRoyal+Palace+Amsterdam%7CBloemenmarkt%7CRembrandtplein&travelmode=walking",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=ibis+Amsterdam+Centre&destination=Bloemenmarkt&waypoints=Amsterdam+Centraal%7CDam+Square%7CRoyal+Palace+Amsterdam&travelmode=walking",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Bloemenmarkt&destination=ibis+Amsterdam+Centre&waypoints=The+Pantry+Amsterdam%7CRembrandtplein%7CBlue+Amsterdam&travelmode=walking",
     notes: "오후 자유 쇼핑 시간을 확보하고, 피곤하면 렘브란트광장 이후 일정을 줄입니다.",
     checklist: ["왕궁 운영 확인", "편한 신발", "보조배터리", "OVpay"],
     schedule: [
@@ -89,6 +91,8 @@ export const defaultDays: TripDay[] = [
     ],
     budget: [{ label: "미술관", amount: "€45~60" }, { label: "식사·카페", amount: "€40~55" }, { label: "잔담 이동", amount: "€4~7" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=ibis+Amsterdam+Centre&destination=Inntel+Hotels+Amsterdam+Zaandam&waypoints=Rijksmuseum%7CThe+Seafood+Bar+Museumplein%7CVan+Gogh+Museum%7CMoco+Museum&travelmode=transit",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=ibis+Amsterdam+Centre&destination=The+Seafood+Bar+Museumplein&waypoints=Rijksmuseum&travelmode=transit",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=The+Seafood+Bar+Museumplein&destination=Inntel+Hotels+Amsterdam+Zaandam&waypoints=Van+Gogh+Museum%7CMoco+Museum%7Cibis+Amsterdam+Centre&travelmode=transit",
     notes: "호텔에 짐을 맡기고 미술관을 관람한 뒤 중앙역에서 짐을 찾아 잔담으로 이동합니다.",
     checklist: ["미술관 예약 QR", "호텔 체크아웃", "짐 보관 영수증", "잔담행 열차 확인"],
     schedule: [
@@ -121,6 +125,8 @@ export const defaultDays: TripDay[] = [
     reservations: [{ name: "Anne Frank House", time: "18:00", code: "", note: "내부 관람 시 온라인 사전예약 필수" }],
     budget: [{ label: "교통", amount: "€15~25" }, { label: "풍차·체험", amount: "€15~30" }, { label: "식사", amount: "€45~60" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=Inntel+Hotels+Amsterdam+Zaandam&destination=Moeders+Amsterdam&waypoints=Zaanse+Schans%7CJordaan+Amsterdam%7CAnne+Frank+House&travelmode=transit",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Inntel+Hotels+Amsterdam+Zaandam&destination=De+Kraai+Zaanse+Schans&waypoints=Zaanse+Schans&travelmode=transit",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Zaanse+Schans&destination=Moeders+Amsterdam&waypoints=Jordaan+Amsterdam%7CAnne+Frank+House&travelmode=transit",
     notes: "안네 프랑크 하우스 티켓이 없으면 외관과 서교회, 주변 운하 산책으로 대체합니다.",
     checklist: ["겉옷", "우산", "안네 프랑크 예약 확인", "카메라 배터리"],
     schedule: [
@@ -155,6 +161,8 @@ export const defaultDays: TripDay[] = [
     ],
     budget: [{ label: "도시간 열차", amount: "€35~50" }, { label: "미술관", amount: "€20~40" }, { label: "식사", amount: "€35~50" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=Mauritshuis%7CBinnenhof%7CMarkthal+Rotterdam%7CCube+Houses%7CDepot+Boijmans+Van+Beuningen&travelmode=transit",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=Amazing+Den+Haag&waypoints=Mauritshuis%7CBinnenhof&travelmode=transit",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Amazing+Den+Haag&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=Depot+Boijmans+Van+Beuningen%7CMarkthal+Rotterdam%7CCube+Houses&travelmode=transit",
     notes: "Zaandam에서 체크아웃한 뒤 DoubleTree에 먼저 짐을 맡기고 헤이그로 출발합니다.",
     checklist: ["체크아웃", "짐 보관", "Mauritshuis 예약", "열차 지연 확인"],
     schedule: [
@@ -189,6 +197,8 @@ export const defaultDays: TripDay[] = [
     reservations: [{ name: "Amsterdam ↔ Brussels 국제열차", time: "07:20 / 17:00", code: "", note: "좌석·플랫폼 확인" }],
     budget: [{ label: "국제열차", amount: "예약가 기준" }, { label: "식사·디저트", amount: "€40~60" }, { label: "초콜릿 쇼핑", amount: "€20~80" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=Brussels+Central+Station&destination=Brussels+Central+Station&waypoints=Grand+Place+Brussels%7CGaleries+Royales+Saint-Hubert%7CManneken+Pis%7CChez+Leon%7CMaison+Dandoy&travelmode=walking",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Brussels+Central+Station&destination=Manneken+Pis&waypoints=Grand+Place+Brussels%7CGaleries+Royales+Saint-Hubert&travelmode=walking",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=Manneken+Pis&destination=Brussels+Central+Station&waypoints=Chez+Leon+Brussels%7CMaison+Dandoy+Brussels&travelmode=walking",
     notes: "당일치기이므로 쇼핑 물품이 많아지지 않도록 작은 접이식 가방을 준비합니다.",
     checklist: ["여권", "국제열차 QR", "보조배터리", "접이식 쇼핑백"],
     schedule: [
@@ -221,6 +231,8 @@ export const defaultDays: TripDay[] = [
     reservations: [{ name: "Cannibale Royale", time: "18:40", code: "", note: "저녁 예약 권장" }],
     budget: [{ label: "식사", amount: "€40~60" }, { label: "교통", amount: "€5~10" }, { label: "쇼핑", amount: "개인 예산" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=Albert+Cuyp+Market%7CBloemenmarkt%7CDe+9+Straatjes%7CDe+Bijenkorf+Amsterdam%7CDam+Square%7CCannibale+Royale&travelmode=transit",
+    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=De+9+Straatjes&waypoints=Albert+Cuyp+Market%7CBloemenmarkt&travelmode=transit",
+    afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=De+9+Straatjes&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=De+Bijenkorf+Amsterdam%7CDam+Square%7CCannibale+Royale+Amsterdam&travelmode=walking",
     notes: "귀국 짐 무게를 고려해 쇼핑하고, 밤에 여권·항공권·공항 이동 시간을 최종 확인합니다.",
     checklist: ["접이식 쇼핑백", "택스리펀드 영수증", "수하물 무게 확인", "귀국 준비"],
     schedule: [

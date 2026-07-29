@@ -75,9 +75,21 @@ export default function DayView({ day }: { day: number }) {
         <article className="card">
           <h3>🍽️ 맛집·카페</h3>
           {data.food.map((x, i) => (
-            <div className="infoRow" key={i}>
-              <strong>{x.name}</strong>
-              <div className="small">{x.type} · {x.note}</div>
+            <div className="infoRow foodRow" key={i}>
+              <div>
+                <strong>{x.name}</strong>
+                <div className="small">{x.type} · {x.note}</div>
+              </div>
+              {x.mapUrl && (
+                <a
+                  className="btn soft placeMapBtn"
+                  target="_blank"
+                  rel="noreferrer"
+                  href={x.mapUrl}
+                >
+                  📍 지도
+                </a>
+              )}
             </div>
           ))}
         </article>
@@ -107,11 +119,41 @@ export default function DayView({ day }: { day: number }) {
         <article className="card">
           <h3>🚆 교통 안내</h3>
           <p className="small">{data.transport}</p>
-          {data.mapUrl && (
-            <a className="btn primary mapBtn" target="_blank" rel="noreferrer" href={data.mapUrl}>
-              전체 동선 지도
-            </a>
-          )}
+
+          <div className="mapActions">
+            {data.morningMapUrl && (
+              <a
+                className="btn primary mapBtn"
+                target="_blank"
+                rel="noreferrer"
+                href={data.morningMapUrl}
+              >
+                ☀️ 오전 동선 지도
+              </a>
+            )}
+
+            {data.afternoonMapUrl && (
+              <a
+                className="btn soft mapBtn"
+                target="_blank"
+                rel="noreferrer"
+                href={data.afternoonMapUrl}
+              >
+                🌆 오후 동선 지도
+              </a>
+            )}
+
+            {!data.morningMapUrl && !data.afternoonMapUrl && data.mapUrl && (
+              <a
+                className="btn primary mapBtn"
+                target="_blank"
+                rel="noreferrer"
+                href={data.mapUrl}
+              >
+                🗺️ 전체 동선 지도
+              </a>
+            )}
+          </div>
         </article>
 
         <article className="card tip">
