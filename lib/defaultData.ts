@@ -231,7 +231,8 @@ export const defaultDays: TripDay[] = [
     reservations: [{ name: "Cannibale Royale", time: "18:40", code: "", note: "저녁 예약 권장" }],
     budget: [{ label: "식사", amount: "€40~60" }, { label: "교통", amount: "€5~10" }, { label: "쇼핑", amount: "개인 예산" }],
     mapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=Albert+Cuyp+Market%7CBloemenmarkt%7CDe+9+Straatjes%7CDe+Bijenkorf+Amsterdam%7CDam+Square%7CCannibale+Royale&travelmode=transit",
-    morningMapUrl: "https://www.google.com/maps/dir/?api=1&origin=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&destination=De+9+Straatjes&waypoints=Albert+Cuyp+Market%7CBloemenmarkt&travelmode=transit",
+    morningMapUrl:
+"https://www.google.com/maps/dir/?api=1&origin=Oosterdoksstraat+4,+1011+DK+Amsterdam,+Netherlands&destination=Hartenstraat+1,+1016+BZ+Amsterdam,+Netherlands&waypoints=Albert+Cuypstraat,+1073+BD+Amsterdam,+Netherlands%7CSingel+630,+1017+AZ+Amsterdam,+Netherlands&travelmode=transit",
     afternoonMapUrl: "https://www.google.com/maps/dir/?api=1&origin=De+9+Straatjes&destination=DoubleTree+by+Hilton+Amsterdam+Centraal+Station&waypoints=De+Bijenkorf+Amsterdam%7CDam+Square%7CCannibale+Royale+Amsterdam&travelmode=walking",
     notes: "귀국 짐 무게를 고려해 쇼핑하고, 밤에 여권·항공권·공항 이동 시간을 최종 확인합니다.",
     checklist: ["접이식 쇼핑백", "택스리펀드 영수증", "수하물 무게 확인", "귀국 준비"],
