@@ -658,12 +658,12 @@ export default function AdminCloud() {
             className="btn danger"
             disabled={busy || uploading}
             onClick={async () => {
-              if (!confirm("전체 기본값으로 복원할까요?")) return;
+              if (!confirm("암스테르담 8일 자동입력암스테르담 8일 기본 일정을 불러오시겠습니까?\n현재 작성된 일정은 기본 일정으로 변경됩니다.")) return;
               await resetDaysInCloud();
               setDays(defaultDays);
             }}
           >
-            클라우드 기본값 복원
+            암스테르담 8일 자동입력
           </button>
 
           <Link className="btn soft" href={`/day/${selected}`}>
