@@ -9,3 +9,6 @@
 
 /* Stage 5.2 · transport-aware automatic Google Maps routes */
 .routePreviewActions .btn,.mapActions .btn{line-height:1.25;text-align:center}
+
+/* Stage 5.3 · place-to-schedule synchronization */
+.scheduleSyncCard{background:linear-gradient(145deg,#fffaf3,#fff);border-color:#ead7bd}.scheduleSyncCard p{margin:8px 0 12px}.scheduleSyncActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:420px){.scheduleSyncActions{grid-template-columns:1fr}}

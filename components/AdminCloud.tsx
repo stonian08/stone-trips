@@ -17,7 +17,39 @@ import {
   routeFromPlaces,
   syncDayFromPlaces,
 } from "../lib/routeUtils";
-import { PlaceItem, TripDay } from "../lib/types";
+import { PlaceItem, ScheduleItem, TripDay } from "../lib/types";
+
+function iconForPlace(place: PlaceItem): string {
+  const value = `${place.category} ${place.name}`.toLowerCase();
+  if (value.includes("hotel") || value.includes("숙소")) return "🏨";
+  if (value.includes("museum") || value.includes("미술관") || value.includes("박물관")) return "🖼️";
+  if (value.includes("restaurant") || value.includes("식당") || value.includes("카페") || value.includes("food")) return "🍽️";
+  if (value.includes("airport") || value.includes("공항")) return "✈️";
+  if (value.includes("station") || value.includes("역")) return "🚉";
+  if (value.includes("shopping") || value.includes("시장") || value.includes("쇼핑")) return "🛍️";
+  if (value.includes("park") || value.includes("공원")) return "🌿";
+  return "📍";
+}
+
+function scheduleFromPlaces(places: PlaceItem[]): ScheduleItem[] {
+  return places
+    .filter((place) => place.name.trim() || place.address.trim())
+    .map((place) => ({
+      id: `place-${place.id}`,
+      time: place.time.trim(),
+      title: place.name.trim() || place.address.trim(),
+      description: [place.note?.trim(), place.address.trim()].filter(Boolean).join(" · "),
+      icon: iconForPlace(place),
+    }));
+}
+
+function periodFromTime(time: string): PlaceItem["period"] | null {
+  const match = time.trim().match(/^(\d{1,2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  if (!Number.isFinite(hour) || hour < 0 || hour > 23) return null;
+  return hour < 12 ? "morning" : "afternoon";
+}
 
 export default function AdminCloud() {
   const [sessionReady, setSessionReady] = useState(false);
@@ -92,6 +124,24 @@ export default function AdminCloud() {
         note: "",
       },
     ]);
+  };
+
+  const classifyPeriodsByTime = () => {
+    const nextPlaces = (data.places || []).map((place) => {
+      const period = periodFromTime(place.time);
+      return period ? { ...place, period } : place;
+    });
+    updatePlaces(nextPlaces);
+  };
+
+  const replaceScheduleFromPlaces = () => {
+    const nextSchedule = scheduleFromPlaces(data.places || []);
+    if (nextSchedule.length === 0) {
+      setError("일정으로 변환할 장소가 없습니다.");
+      return;
+    }
+    if (data.schedule.length > 0 && !confirm("현재 시간별 일정을 장소 목록으로 교체할까요?")) return;
+    update({ schedule: nextSchedule });
   };
 
   const movePlace = (index: number, direction: -1 | 1) => {
@@ -210,7 +260,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5.2</div>
+        <div className="brand">CLOUD EDITOR · STAGE 5.3</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -567,6 +617,21 @@ export default function AdminCloud() {
         </button>
 
         <h2 className="sectionTitle">시간별 일정</h2>
+        <div className="card scheduleSyncCard">
+          <strong>장소 목록과 일정 연결</strong>
+          <p className="small">
+            장소의 시간·이름·메모를 이용해 시간별 일정을 만들 수 있습니다.
+            기존 일정은 확인 후 교체됩니다.
+          </p>
+          <div className="scheduleSyncActions">
+            <button type="button" className="btn soft" onClick={classifyPeriodsByTime}>
+              시간 기준 오전·오후 자동 분류
+            </button>
+            <button type="button" className="btn primary" onClick={replaceScheduleFromPlaces}>
+              장소 목록을 일정에 반영
+            </button>
+          </div>
+        </div>
         {data.schedule.map((x, i) => (
           <div className="editor" key={x.id}>
             <div className="row">
