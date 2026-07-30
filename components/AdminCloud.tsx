@@ -69,6 +69,7 @@ export default function AdminCloud() {
   const [days, setDays] = useState<TripDay[]>(defaultDays);
   const [selected, setSelected] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draggedPlaceIndex, setDraggedPlaceIndex] = useState<number | null>(null);
@@ -195,6 +196,15 @@ export default function AdminCloud() {
       setDays(normalizedDays);
       await saveDaysToCloud(normalizedDays);
       setSaved(true);
+      setLastSavedAt(
+        new Intl.DateTimeFormat("ko-KR", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(new Date())
+      );
       setTimeout(() => setSaved(false), 2200);
     } catch (e) {
       setError(e instanceof Error ? e.message : "저장 실패");
@@ -264,7 +274,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5.5</div>
+        <div className="brand">CLOUD EDITOR</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -284,6 +294,18 @@ export default function AdminCloud() {
 
         {busy && <div className="notice" style={{ marginTop: 10 }}>처리 중...</div>}
         {error && <div className="error" style={{ marginTop: 10 }}>{error}</div>}
+
+        <div className={`saveState ${saved ? "isSaved" : ""}`}>
+          <span className="saveStateDot" aria-hidden="true" />
+          <div>
+            <strong>{saved ? "저장 완료" : "관리자 편집 모드"}</strong>
+            <span>
+              {lastSavedAt
+                ? `마지막 저장 ${lastSavedAt}`
+                : "장소를 수정한 뒤 아래 저장 버튼을 누르세요."}
+            </span>
+          </div>
+        </div>
 
         <div className="form" style={{ marginTop: 16 }}>
           <label>
@@ -616,85 +638,10 @@ export default function AdminCloud() {
         </button>
 
         <h2 className="sectionTitle">시간별 일정</h2>
-        {data.schedule.map((x, i) => (
-          <div className="editor" key={x.id}>
-            <div className="row">
-              <input
-                value={x.icon}
-                placeholder="아이콘"
-                onChange={(e) =>
-                  update({
-                    schedule: data.schedule.map((v, n) =>
-                      n === i ? { ...v, icon: e.target.value } : v
-                    ),
-                  })
-                }
-              />
-              <input
-                value={x.time}
-                placeholder="시간"
-                onChange={(e) =>
-                  update({
-                    schedule: data.schedule.map((v, n) =>
-                      n === i ? { ...v, time: e.target.value } : v
-                    ),
-                  })
-                }
-              />
-            </div>
-            <input
-              value={x.title}
-              placeholder="일정 제목"
-              onChange={(e) =>
-                update({
-                  schedule: data.schedule.map((v, n) =>
-                    n === i ? { ...v, title: e.target.value } : v
-                  ),
-                })
-              }
-            />
-            <textarea
-              value={x.description}
-              placeholder="설명"
-              onChange={(e) =>
-                update({
-                  schedule: data.schedule.map((v, n) =>
-                    n === i ? { ...v, description: e.target.value } : v
-                  ),
-                })
-              }
-            />
-            <button
-              className="btn danger"
-              onClick={() =>
-                update({
-                  schedule: data.schedule.filter((_, n) => n !== i),
-                })
-              }
-            >
-              삭제
-            </button>
-          </div>
-        ))}
-        <button
-          className="btn soft"
-          onClick={() =>
-            update({
-              schedule: [
-                ...data.schedule,
-                {
-                  id: crypto.randomUUID(),
-                  time: "",
-                  title: "새 일정",
-                  description: "",
-                  icon: "📍",
-                },
-              ],
-            })
-          }
-        >
-          + 일정 추가
-        </button>
+        <div className="notice autoScheduleNotice">
+          시간별 일정은 장소의 시간·이름·주소·메모를 기준으로 저장할 때 자동 생성됩니다.
+          별도로 다시 입력할 필요가 없습니다.
+        </div>
 
         <h2 className="sectionTitle">맛집·카페</h2>
         {data.food.map((x, i) => (
@@ -934,7 +881,7 @@ export default function AdminCloud() {
             disabled={busy || uploading}
             onClick={save}
           >
-            Supabase에 저장
+            변경사항 저장
           </button>
 
           <button
@@ -956,7 +903,7 @@ export default function AdminCloud() {
 
         {saved && (
           <div className="notice" style={{ marginTop: 12 }}>
-            클라우드에 저장되었습니다.
+            장소·일정·전체/오전/오후 지도가 함께 저장되었습니다.
           </div>
         )}
       </section>

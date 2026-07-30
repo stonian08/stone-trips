@@ -29,3 +29,6 @@
   font-weight: 500;
   color: #6c7b88;
 }
+
+/* Simple admin · clear save state */
+.saveState{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border:1px solid #d6e1e8;border-radius:14px;background:#f7fafc}.saveStateDot{width:10px;height:10px;flex:0 0 auto;border-radius:50%;background:#8fa1ae;box-shadow:0 0 0 4px rgba(143,161,174,.14)}.saveState div{display:flex;flex-direction:column;gap:2px}.saveState strong{font-size:13px}.saveState span{font-size:12px;color:var(--muted)}.saveState.isSaved{border-color:#b9dcca;background:#eef8f2}.saveState.isSaved .saveStateDot{background:#2f8a5c;box-shadow:0 0 0 4px rgba(47,138,92,.14)}.autoScheduleNotice{margin-bottom:14px;line-height:1.65}
