@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { defaultDays } from "../lib/defaultData";
 import { loadDaysFromCloud } from "../lib/cloudStorage";
-import { createDirectionsUrl, createPlaceMapUrl, placesForPeriod, routeFromPlaces } from "../lib/routeUtils";
+import { createDirectionsUrls, createPlaceMapUrl, placesForPeriod, routeFromPlaces } from "../lib/routeUtils";
 import { TripDay } from "../lib/types";
 
 export default function DayView({ day }: { day: number }) {
@@ -30,13 +30,15 @@ export default function DayView({ day }: { day: number }) {
   const morningPlaces = placesForPeriod(places, "morning");
   const afternoonPlaces = placesForPeriod(places, "afternoon");
   const route = places.length > 0 ? routeFromPlaces(places) : data.route;
-  const morningMapUrl = morningPlaces.length > 0
-    ? createDirectionsUrl(morningPlaces)
-    : data.morningMapUrl || "";
-  const afternoonMapUrl = afternoonPlaces.length > 0
-    ? createDirectionsUrl(afternoonPlaces)
-    : data.afternoonMapUrl || "";
-  const wholeMapUrl = places.length > 0 ? createDirectionsUrl(places) : data.mapUrl;
+  const morningMapUrls = morningPlaces.length > 0
+    ? createDirectionsUrls(morningPlaces)
+    : data.morningMapUrl ? [data.morningMapUrl] : [];
+  const afternoonMapUrls = afternoonPlaces.length > 0
+    ? createDirectionsUrls(afternoonPlaces)
+    : data.afternoonMapUrl ? [data.afternoonMapUrl] : [];
+  const wholeMapUrls = places.length > 0
+    ? createDirectionsUrls(places)
+    : data.mapUrl ? [data.mapUrl] : [];
 
   return (
     <main className="shell">
@@ -152,21 +154,21 @@ export default function DayView({ day }: { day: number }) {
           <h3>🚆 교통 안내</h3>
           <p className="small">{data.transport}</p>
           <div className="mapActions">
-            {morningMapUrl && (
-              <a className="btn primary mapBtn" target="_blank" rel="noreferrer" href={morningMapUrl}>
-                오전 동선 지도
+            {morningMapUrls.map((url, index) => (
+              <a key={`morning-${index}`} className="btn primary mapBtn" target="_blank" rel="noreferrer" href={url}>
+                오전 동선 지도{morningMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
-            )}
-            {afternoonMapUrl && (
-              <a className="btn soft mapBtn" target="_blank" rel="noreferrer" href={afternoonMapUrl}>
-                오후 동선 지도
+            ))}
+            {afternoonMapUrls.map((url, index) => (
+              <a key={`afternoon-${index}`} className="btn soft mapBtn" target="_blank" rel="noreferrer" href={url}>
+                오후 동선 지도{afternoonMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
-            )}
-            {!morningMapUrl && !afternoonMapUrl && wholeMapUrl && (
-              <a className="btn primary mapBtn" target="_blank" rel="noreferrer" href={wholeMapUrl}>
-                전체 동선 지도
+            ))}
+            {morningMapUrls.length === 0 && afternoonMapUrls.length === 0 && wholeMapUrls.map((url, index) => (
+              <a key={`whole-${index}`} className="btn primary mapBtn" target="_blank" rel="noreferrer" href={url}>
+                전체 동선 지도{wholeMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
-            )}
+            ))}
           </div>
         </article>
 

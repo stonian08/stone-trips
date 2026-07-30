@@ -10,7 +10,13 @@ import {
 } from "../lib/cloudStorage";
 import { uploadTripImage } from "../lib/imageStorage";
 import { supabase } from "../lib/supabase";
-import { syncDayFromPlaces } from "../lib/routeUtils";
+import {
+  createDirectionsUrls,
+  createPlaceMapUrl,
+  placesForPeriod,
+  routeFromPlaces,
+  syncDayFromPlaces,
+} from "../lib/routeUtils";
 import { PlaceItem, TripDay } from "../lib/types";
 
 export default function AdminCloud() {
@@ -26,6 +32,7 @@ export default function AdminCloud() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [draggedPlaceIndex, setDraggedPlaceIndex] = useState<number | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -50,6 +57,14 @@ export default function AdminCloud() {
   }, [loggedIn]);
 
   const data = days.find((d) => d.day === selected) || days[0];
+
+  const places = data.places || [];
+  const morningPlaces = placesForPeriod(places, "morning");
+  const afternoonPlaces = placesForPeriod(places, "afternoon");
+  const wholeRouteUrls = createDirectionsUrls(places);
+  const morningRouteUrls = createDirectionsUrls(morningPlaces);
+  const afternoonRouteUrls = createDirectionsUrls(afternoonPlaces);
+  const missingAddressCount = places.filter((place) => !place.address.trim()).length;
 
   const update = (patch: Partial<TripDay>) => {
     setDays((prev) =>
@@ -85,6 +100,19 @@ export default function AdminCloud() {
     if (nextIndex < 0 || nextIndex >= places.length) return;
     [places[index], places[nextIndex]] = [places[nextIndex], places[index]];
     updatePlaces(places);
+  };
+
+  const dropPlace = (targetIndex: number) => {
+    if (draggedPlaceIndex === null || draggedPlaceIndex === targetIndex) {
+      setDraggedPlaceIndex(null);
+      return;
+    }
+
+    const places = [...(data.places || [])];
+    const [moved] = places.splice(draggedPlaceIndex, 1);
+    places.splice(targetIndex, 0, moved);
+    updatePlaces(places);
+    setDraggedPlaceIndex(null);
   };
 
   const login = async () => {
@@ -182,7 +210,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5</div>
+        <div className="brand">CLOUD EDITOR · STAGE 5.1</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -325,14 +353,58 @@ export default function AdminCloud() {
 
         <h2 className="sectionTitle">장소 기반 경로</h2>
         <div className="notice" style={{ marginBottom: 12 }}>
-          장소 순서가 오늘의 경로와 Google Maps 동선에 자동 반영됩니다.
-          정확한 주소를 입력할수록 지도가 안정적으로 열립니다.
+          장소가 경로의 기준 데이터입니다. 장소 추가·삭제·순서 변경 즉시 오늘의 경로와
+          지도 미리보기가 함께 바뀝니다. 저장하면 사용자 화면에도 그대로 반영됩니다.
         </div>
 
-        {(data.places || []).map((place, i) => (
-          <div className="editor placeEditor" key={place.id}>
+        <div className="card routePreviewCard">
+          <div className="routePreviewHead">
+            <strong>실시간 경로 미리보기</strong>
+            <span>{places.length}개 장소</span>
+          </div>
+          <div className="routePreviewText">
+            {routeFromPlaces(places) || "장소를 추가하면 경로가 여기에 표시됩니다."}
+          </div>
+          {missingAddressCount > 0 && (
+            <div className="routeWarning">
+              주소가 비어 있는 장소가 {missingAddressCount}개 있습니다. 장소명만으로도 열리지만,
+              정확한 주소를 입력하면 다른 지역의 동명 장소로 연결되는 오류를 줄일 수 있습니다.
+            </div>
+          )}
+          <div className="routePreviewActions">
+            {wholeRouteUrls.map((url, index) => (
+              <a key={`whole-${index}`} className="btn primary" target="_blank" rel="noreferrer" href={url}>
+                전체 동선{wholeRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+              </a>
+            ))}
+            {morningRouteUrls.map((url, index) => (
+              <a key={`morning-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
+                오전 동선{morningRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+              </a>
+            ))}
+            {afternoonRouteUrls.map((url, index) => (
+              <a key={`afternoon-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
+                오후 동선{afternoonRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {places.map((place, i) => (
+          <div
+            className={`editor placeEditor ${draggedPlaceIndex === i ? "dragging" : ""}`}
+            key={place.id}
+            draggable
+            onDragStart={() => setDraggedPlaceIndex(i)}
+            onDragEnd={() => setDraggedPlaceIndex(null)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => dropPlace(i)}
+          >
             <div className="placeEditorTop">
-              <strong>{i + 1}. {place.name || "새 장소"}</strong>
+              <div className="placeTitleWrap">
+                <span className="dragHandle" title="끌어서 순서 변경">☰</span>
+                <strong>{i + 1}. {place.name || "새 장소"}</strong>
+              </div>
               <div className="placeMoveActions">
                 <button
                   type="button"
@@ -434,15 +506,25 @@ export default function AdminCloud() {
               }
             />
 
-            <button
-              type="button"
-              className="btn danger"
-              onClick={() =>
-                updatePlaces((data.places || []).filter((_, n) => n !== i))
-              }
-            >
-              장소 삭제
-            </button>
+            <div className="placeCardActions">
+              <a
+                className="btn soft"
+                target="_blank"
+                rel="noreferrer"
+                href={createPlaceMapUrl(place)}
+              >
+                개별 지도
+              </a>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={() =>
+                  updatePlaces((data.places || []).filter((_, n) => n !== i))
+                }
+              >
+                장소 삭제
+              </button>
+            </div>
           </div>
         ))}
 
