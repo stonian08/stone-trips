@@ -3,119 +3,114 @@ import { PlaceItem, PlacePeriod, TravelMode, TripDay } from "./types";
 const GOOGLE_SEARCH = "https://www.google.com/maps/search/?api=1";
 const MAX_PLACES_PER_ROUTE = 5;
 
-export type RouteSection = {
-  url: string;
-  mode: TravelMode;
-  places: PlaceItem[];
-};
-
-function clean(value: string | undefined): string {
-  return (value || "").trim();
-}
-
-function validPlaces(places: PlaceItem[] | undefined): PlaceItem[] {
-  return (places || []).filter((place) => clean(place.name) || clean(place.address));
+function hasLocation(place: PlaceItem): boolean {
+  return Boolean(place.name.trim() || place.address.trim());
 }
 
 function placeQuery(place: PlaceItem): string {
-  const name = clean(place.name);
-  const address = clean(place.address);
-
-  if (name && address) return `${name}, ${address}`;
-  return address || name;
+  return [place.name.trim(), place.address.trim()].filter(Boolean).join(", ");
 }
 
 export function createPlaceMapUrl(place: PlaceItem): string {
   const query = placeQuery(place);
-  if (!query) return "";
-  return `${GOOGLE_SEARCH}&query=${encodeURIComponent(query)}`;
-}
-
-function modeForLeg(destination: PlaceItem, origin: PlaceItem): TravelMode {
-  return destination.travelMode || origin.travelMode || "walking";
+  return query ? `${GOOGLE_SEARCH}&query=${encodeURIComponent(query)}` : "";
 }
 
 function createSingleDirectionsUrl(
   places: PlaceItem[],
-  mode: TravelMode
+  travelMode: TravelMode
 ): string {
   if (places.length === 0) return "";
   if (places.length === 1) return createPlaceMapUrl(places[0]);
 
   const origin = placeQuery(places[0]);
   const destination = placeQuery(places[places.length - 1]);
-  if (!origin || !destination) return "";
+  const waypoints = places.slice(1, -1);
 
-  const waypoints = places.slice(1, -1).map(placeQuery).filter(Boolean);
   const params = new URLSearchParams({
     api: "1",
     origin,
     destination,
-    travelmode: mode,
+    travelmode: travelMode,
   });
 
   if (waypoints.length > 0) {
-    params.set("waypoints", waypoints.join("|"));
+    params.set("waypoints", waypoints.map(placeQuery).join("|"));
   }
 
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 /**
- * Google Maps directions URLs support one travel mode per URL and become
- * unreliable on mobile with many waypoints. This function therefore splits
- * an itinerary whenever the transport mode changes or the route reaches the
- * safe waypoint limit. The boundary place is repeated so no leg disappears.
+ * travelMode is interpreted as "the mode used to arrive at this place".
+ * Therefore the leg from places[i - 1] to places[i] uses places[i].travelMode.
+ * Google Maps accepts only one travel mode per directions URL, so mixed-mode
+ * itineraries are split at each mode change while repeating the boundary stop.
  */
-export function createDirectionsSections(
-  input: PlaceItem[] | undefined
-): RouteSection[] {
-  const places = validPlaces(input);
-  if (places.length === 0) return [];
-  if (places.length === 1) {
-    return [
-      {
-        url: createPlaceMapUrl(places[0]),
-        mode: places[0].travelMode || "walking",
-        places,
-      },
-    ];
-  }
+function splitByTravelMode(places: PlaceItem[]): Array<{
+  places: PlaceItem[];
+  mode: TravelMode;
+}> {
+  if (places.length < 2) return [];
 
-  const sections: RouteSection[] = [];
+  const sections: Array<{ places: PlaceItem[]; mode: TravelMode }> = [];
   let sectionStart = 0;
-  let sectionMode = modeForLeg(places[1], places[0]);
+  let currentMode: TravelMode = places[1].travelMode || "walking";
 
-  for (let legEnd = 1; legEnd < places.length; legEnd += 1) {
-    const legMode = modeForLeg(places[legEnd], places[legEnd - 1]);
-    const sectionPlaceCount = legEnd - sectionStart + 1;
-    const modeChanged = legMode !== sectionMode;
-    const reachedLimit = sectionPlaceCount > MAX_PLACES_PER_ROUTE;
-
-    if (modeChanged || reachedLimit) {
-      const sectionPlaces = places.slice(sectionStart, legEnd);
-      if (sectionPlaces.length > 0) {
-        const url = createSingleDirectionsUrl(sectionPlaces, sectionMode);
-        if (url) sections.push({ url, mode: sectionMode, places: sectionPlaces });
-      }
-      sectionStart = legEnd - 1;
-      sectionMode = legMode;
+  for (let destinationIndex = 2; destinationIndex < places.length; destinationIndex += 1) {
+    const legMode = places[destinationIndex].travelMode || "walking";
+    if (legMode !== currentMode) {
+      sections.push({
+        places: places.slice(sectionStart, destinationIndex),
+        mode: currentMode,
+      });
+      sectionStart = destinationIndex - 1;
+      currentMode = legMode;
     }
   }
 
-  const finalPlaces = places.slice(sectionStart);
-  const finalUrl = createSingleDirectionsUrl(finalPlaces, sectionMode);
-  if (finalUrl) sections.push({ url: finalUrl, mode: sectionMode, places: finalPlaces });
-
+  sections.push({ places: places.slice(sectionStart), mode: currentMode });
   return sections;
 }
 
-export function createDirectionsUrls(places: PlaceItem[] | undefined): string[] {
-  return createDirectionsSections(places).map((section) => section.url);
+function splitLongSection(places: PlaceItem[]): PlaceItem[][] {
+  if (places.length <= MAX_PLACES_PER_ROUTE) return [places];
+
+  const chunks: PlaceItem[][] = [];
+  let start = 0;
+
+  while (start < places.length - 1) {
+    const end = Math.min(start + MAX_PLACES_PER_ROUTE, places.length);
+    chunks.push(places.slice(start, end));
+    start = end - 1;
+  }
+
+  return chunks;
 }
 
-/** Backward-compatible helper that returns the first generated route URL. */
-export function createDirectionsUrl(places: PlaceItem[] | undefined): string {
+/**
+ * Creates reliable Google Maps links from the current place order.
+ * - Empty stops are ignored.
+ * - One stop opens a place search.
+ * - Mixed transportation modes become separate route links.
+ * - Long sections are split to avoid unstable mobile waypoint handling.
+ */
+export function createDirectionsUrls(places: PlaceItem[]): string[] {
+  const validPlaces = places.filter(hasLocation);
+  if (validPlaces.length === 0) return [];
+  if (validPlaces.length === 1) return [createPlaceMapUrl(validPlaces[0])];
+
+  return splitByTravelMode(validPlaces)
+    .flatMap((section) =>
+      splitLongSection(section.places).map((chunk) =>
+        createSingleDirectionsUrl(chunk, section.mode)
+      )
+    )
+    .filter(Boolean);
+}
+
+/** Backward-compatible helper that returns the first generated route link. */
+export function createDirectionsUrl(places: PlaceItem[]): string {
   return createDirectionsUrls(places)[0] || "";
 }
 
@@ -123,13 +118,13 @@ export function placesForPeriod(
   places: PlaceItem[] | undefined,
   period: PlacePeriod
 ): PlaceItem[] {
-  return validPlaces(places).filter((place) => place.period === period);
+  return (places || []).filter((place) => place.period === period && hasLocation(place));
 }
 
 export function routeFromPlaces(places: PlaceItem[] | undefined): string {
-  return validPlaces(places)
-    .map((place) => clean(place.name) || clean(place.address))
-    .filter(Boolean)
+  return (places || [])
+    .filter(hasLocation)
+    .map((place) => place.name.trim() || place.address.trim())
     .join(" → ");
 }
 
@@ -137,11 +132,11 @@ export function syncDayFromPlaces(day: TripDay): TripDay {
   const places = day.places || [];
   if (places.length === 0) return day;
 
+  // Places are the single source of truth. Legacy static URL fields are kept
+  // empty so an old saved link cannot override the newly generated route.
   return {
     ...day,
     route: routeFromPlaces(places),
-    // Legacy static URLs are cleared so edited place data remains the source
-    // of truth in both the editor and the public itinerary view.
     mapUrl: "",
     morningMapUrl: "",
     afternoonMapUrl: "",

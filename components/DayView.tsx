@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { defaultDays } from "../lib/defaultData";
 import { loadDaysFromCloud } from "../lib/cloudStorage";
-import { createDirectionsSections, createPlaceMapUrl, placesForPeriod, routeFromPlaces } from "../lib/routeUtils";
+import { createDirectionsUrls, createPlaceMapUrl, placesForPeriod, routeFromPlaces } from "../lib/routeUtils";
 import { TripDay } from "../lib/types";
 
 export default function DayView({ day }: { day: number }) {
@@ -30,22 +30,15 @@ export default function DayView({ day }: { day: number }) {
   const morningPlaces = placesForPeriod(places, "morning");
   const afternoonPlaces = placesForPeriod(places, "afternoon");
   const route = places.length > 0 ? routeFromPlaces(places) : data.route;
-  const morningMapSections = morningPlaces.length > 0
-    ? createDirectionsSections(morningPlaces)
-    : data.morningMapUrl ? [{ url: data.morningMapUrl, mode: "walking" as const, places: [] }] : [];
-  const afternoonMapSections = afternoonPlaces.length > 0
-    ? createDirectionsSections(afternoonPlaces)
-    : data.afternoonMapUrl ? [{ url: data.afternoonMapUrl, mode: "walking" as const, places: [] }] : [];
-  const wholeMapSections = places.length > 0
-    ? createDirectionsSections(places)
-    : data.mapUrl ? [{ url: data.mapUrl, mode: "walking" as const, places: [] }] : [];
-
-  const modeLabel = {
-    walking: "도보",
-    transit: "대중교통",
-    driving: "자동차",
-    bicycling: "자전거",
-  } as const;
+  const morningMapUrls = morningPlaces.length > 0
+    ? createDirectionsUrls(morningPlaces)
+    : data.morningMapUrl ? [data.morningMapUrl] : [];
+  const afternoonMapUrls = afternoonPlaces.length > 0
+    ? createDirectionsUrls(afternoonPlaces)
+    : data.afternoonMapUrl ? [data.afternoonMapUrl] : [];
+  const wholeMapUrls = places.length > 0
+    ? createDirectionsUrls(places)
+    : data.mapUrl ? [data.mapUrl] : [];
 
   return (
     <main className="shell">
@@ -161,19 +154,19 @@ export default function DayView({ day }: { day: number }) {
           <h3>🚆 교통 안내</h3>
           <p className="small">{data.transport}</p>
           <div className="mapActions">
-            {wholeMapSections.map((section, index) => (
-              <a key={`whole-${index}`} className="btn primary mapBtn" target="_blank" rel="noreferrer" href={section.url}>
-                전체 동선{wholeMapSections.length > 1 ? ` ${index + 1}` : ""} · {modeLabel[section.mode]}
+            {morningMapUrls.map((url, index) => (
+              <a key={`morning-${index}`} className="btn primary mapBtn" target="_blank" rel="noreferrer" href={url}>
+                오전 동선 지도{morningMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
-            {morningMapSections.map((section, index) => (
-              <a key={`morning-${index}`} className="btn soft mapBtn" target="_blank" rel="noreferrer" href={section.url}>
-                오전 동선{morningMapSections.length > 1 ? ` ${index + 1}` : ""} · {modeLabel[section.mode]}
+            {afternoonMapUrls.map((url, index) => (
+              <a key={`afternoon-${index}`} className="btn soft mapBtn" target="_blank" rel="noreferrer" href={url}>
+                오후 동선 지도{afternoonMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
-            {afternoonMapSections.map((section, index) => (
-              <a key={`afternoon-${index}`} className="btn soft mapBtn" target="_blank" rel="noreferrer" href={section.url}>
-                오후 동선{afternoonMapSections.length > 1 ? ` ${index + 1}` : ""} · {modeLabel[section.mode]}
+            {wholeMapUrls.map((url, index) => (
+              <a key={`whole-${index}`} className="btn primary mapBtn" target="_blank" rel="noreferrer" href={url}>
+                전체 동선 지도{wholeMapUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
           </div>

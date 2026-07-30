@@ -11,45 +11,13 @@ import {
 import { uploadTripImage } from "../lib/imageStorage";
 import { supabase } from "../lib/supabase";
 import {
-  createDirectionsSections,
+  createDirectionsUrls,
   createPlaceMapUrl,
   placesForPeriod,
   routeFromPlaces,
   syncDayFromPlaces,
 } from "../lib/routeUtils";
-import { PlaceItem, ScheduleItem, TripDay } from "../lib/types";
-
-function iconForPlace(place: PlaceItem): string {
-  const value = `${place.category} ${place.name}`.toLowerCase();
-  if (value.includes("hotel") || value.includes("숙소")) return "🏨";
-  if (value.includes("museum") || value.includes("미술관") || value.includes("박물관")) return "🖼️";
-  if (value.includes("restaurant") || value.includes("식당") || value.includes("카페") || value.includes("food")) return "🍽️";
-  if (value.includes("airport") || value.includes("공항")) return "✈️";
-  if (value.includes("station") || value.includes("역")) return "🚉";
-  if (value.includes("shopping") || value.includes("시장") || value.includes("쇼핑")) return "🛍️";
-  if (value.includes("park") || value.includes("공원")) return "🌿";
-  return "📍";
-}
-
-function scheduleFromPlaces(places: PlaceItem[]): ScheduleItem[] {
-  return places
-    .filter((place) => place.name.trim() || place.address.trim())
-    .map((place) => ({
-      id: `place-${place.id}`,
-      time: place.time.trim(),
-      title: place.name.trim() || place.address.trim(),
-      description: [place.note?.trim(), place.address.trim()].filter(Boolean).join(" · "),
-      icon: iconForPlace(place),
-    }));
-}
-
-function periodFromTime(time: string): PlaceItem["period"] | null {
-  const match = time.trim().match(/^(\d{1,2})(?::(\d{2}))?/);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  if (!Number.isFinite(hour) || hour < 0 || hour > 23) return null;
-  return hour < 12 ? "morning" : "afternoon";
-}
+import { PlaceItem, TripDay } from "../lib/types";
 
 export default function AdminCloud() {
   const [sessionReady, setSessionReady] = useState(false);
@@ -93,9 +61,9 @@ export default function AdminCloud() {
   const places = data.places || [];
   const morningPlaces = placesForPeriod(places, "morning");
   const afternoonPlaces = placesForPeriod(places, "afternoon");
-  const wholeRouteSections = createDirectionsSections(places);
-  const morningRouteSections = createDirectionsSections(morningPlaces);
-  const afternoonRouteSections = createDirectionsSections(afternoonPlaces);
+  const wholeRouteUrls = createDirectionsUrls(places);
+  const morningRouteUrls = createDirectionsUrls(morningPlaces);
+  const afternoonRouteUrls = createDirectionsUrls(afternoonPlaces);
   const missingAddressCount = places.filter((place) => !place.address.trim()).length;
 
   const update = (patch: Partial<TripDay>) => {
@@ -124,24 +92,6 @@ export default function AdminCloud() {
         note: "",
       },
     ]);
-  };
-
-  const classifyPeriodsByTime = () => {
-    const nextPlaces = (data.places || []).map((place) => {
-      const period = periodFromTime(place.time);
-      return period ? { ...place, period } : place;
-    });
-    updatePlaces(nextPlaces);
-  };
-
-  const replaceScheduleFromPlaces = () => {
-    const nextSchedule = scheduleFromPlaces(data.places || []);
-    if (nextSchedule.length === 0) {
-      setError("일정으로 변환할 장소가 없습니다.");
-      return;
-    }
-    if (data.schedule.length > 0 && !confirm("현재 시간별 일정을 장소 목록으로 교체할까요?")) return;
-    update({ schedule: nextSchedule });
   };
 
   const movePlace = (index: number, direction: -1 | 1) => {
@@ -260,7 +210,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5.3</div>
+        <div className="brand">CLOUD EDITOR · STAGE 5.4</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -388,8 +338,8 @@ export default function AdminCloud() {
           </label>
 
           <div className="notice">
-            지도는 아래 장소의 이름과 정확한 주소를 기준으로 자동 생성됩니다.
-            경로를 바꿀 때는 장소를 추가·삭제하거나 순서를 조정한 뒤 저장하세요.
+            지도는 아래 장소의 이름·주소·이동수단을 기준으로 자동 생성됩니다.
+            장소를 추가·삭제하거나 순서를 바꾸면 전체·오전·오후 동선이 즉시 다시 계산됩니다.
           </div>
 
           <label>
@@ -422,19 +372,19 @@ export default function AdminCloud() {
             </div>
           )}
           <div className="routePreviewActions">
-            {wholeRouteSections.map((section, index) => (
-              <a key={`whole-${index}`} className="btn primary" target="_blank" rel="noreferrer" href={section.url}>
-                전체 동선{wholeRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
+            {wholeRouteUrls.map((url, index) => (
+              <a key={`whole-${index}`} className="btn primary" target="_blank" rel="noreferrer" href={url}>
+                전체 동선{wholeRouteUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
-            {morningRouteSections.map((section, index) => (
-              <a key={`morning-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={section.url}>
-                오전 동선{morningRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
+            {morningRouteUrls.map((url, index) => (
+              <a key={`morning-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
+                오전 동선{morningRouteUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
-            {afternoonRouteSections.map((section, index) => (
-              <a key={`afternoon-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={section.url}>
-                오후 동선{afternoonRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
+            {afternoonRouteUrls.map((url, index) => (
+              <a key={`afternoon-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
+                오후 동선{afternoonRouteUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
           </div>
@@ -617,21 +567,6 @@ export default function AdminCloud() {
         </button>
 
         <h2 className="sectionTitle">시간별 일정</h2>
-        <div className="card scheduleSyncCard">
-          <strong>장소 목록과 일정 연결</strong>
-          <p className="small">
-            장소의 시간·이름·메모를 이용해 시간별 일정을 만들 수 있습니다.
-            기존 일정은 확인 후 교체됩니다.
-          </p>
-          <div className="scheduleSyncActions">
-            <button type="button" className="btn soft" onClick={classifyPeriodsByTime}>
-              시간 기준 오전·오후 자동 분류
-            </button>
-            <button type="button" className="btn primary" onClick={replaceScheduleFromPlaces}>
-              장소 목록을 일정에 반영
-            </button>
-          </div>
-        </div>
         {data.schedule.map((x, i) => (
           <div className="editor" key={x.id}>
             <div className="row">
