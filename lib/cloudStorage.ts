@@ -1,6 +1,8 @@
 "use client";
 
 import { CONTENT_ID, defaultDays } from "./defaultData";
+import { defaultPlacesByDay } from "./defaultPlaces";
+import { syncDayFromPlaces } from "./routeUtils";
 import { supabase } from "./supabase";
 import { TripDay } from "./types";
 
@@ -9,6 +11,15 @@ type TripContentRow = {
   data: TripDay[];
   updated_at: string;
 };
+
+function normalizeDays(days: TripDay[]): TripDay[] {
+  return days.map((day) => {
+    const places = day.places?.length
+      ? day.places
+      : defaultPlacesByDay[day.day] || [];
+    return syncDayFromPlaces({ ...day, places });
+  });
+}
 
 export async function loadDaysFromCloud(): Promise<TripDay[]> {
   const { data, error } = await supabase
@@ -23,16 +34,17 @@ export async function loadDaysFromCloud(): Promise<TripDay[]> {
     return defaultDays;
   }
 
-  return data.data;
+  return normalizeDays(data.data);
 }
 
 export async function saveDaysToCloud(days: TripDay[]): Promise<void> {
+  const normalized = normalizeDays(days);
   const { error } = await supabase
     .from("trip_content")
     .upsert(
       {
         id: CONTENT_ID,
-        data: days,
+        data: normalized,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" }

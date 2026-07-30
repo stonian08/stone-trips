@@ -10,7 +10,8 @@ import {
 } from "../lib/cloudStorage";
 import { uploadTripImage } from "../lib/imageStorage";
 import { supabase } from "../lib/supabase";
-import { TripDay } from "../lib/types";
+import { syncDayFromPlaces } from "../lib/routeUtils";
+import { PlaceItem, TripDay } from "../lib/types";
 
 export default function AdminCloud() {
   const [sessionReady, setSessionReady] = useState(false);
@@ -52,8 +53,38 @@ export default function AdminCloud() {
 
   const update = (patch: Partial<TripDay>) => {
     setDays((prev) =>
-      prev.map((d) => (d.day === selected ? { ...d, ...patch } : d))
+      prev.map((d) =>
+        d.day === selected ? syncDayFromPlaces({ ...d, ...patch }) : d
+      )
     );
+  };
+
+  const updatePlaces = (places: PlaceItem[]) => update({ places });
+
+  const addPlace = () => {
+    const places = data.places || [];
+    const lastPeriod = places.at(-1)?.period || "morning";
+    updatePlaces([
+      ...places,
+      {
+        id: crypto.randomUUID(),
+        name: "새 장소",
+        address: "",
+        time: "",
+        period: lastPeriod,
+        category: "sight",
+        travelMode: "walking",
+        note: "",
+      },
+    ]);
+  };
+
+  const movePlace = (index: number, direction: -1 | 1) => {
+    const places = [...(data.places || [])];
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= places.length) return;
+    [places[index], places[nextIndex]] = [places[nextIndex], places[index]];
+    updatePlaces(places);
   };
 
   const login = async () => {
@@ -258,11 +289,8 @@ export default function AdminCloud() {
           </label>
 
           <label>
-            오늘의 경로
-            <textarea
-              value={data.route}
-              onChange={(e) => update({ route: e.target.value })}
-            />
+            오늘의 경로 · 장소목록에서 자동 생성
+            <textarea value={data.route} readOnly />
           </label>
 
           <label>
@@ -281,13 +309,10 @@ export default function AdminCloud() {
             />
           </label>
 
-          <label>
-            지도 URL
-            <textarea
-              value={data.mapUrl}
-              onChange={(e) => update({ mapUrl: e.target.value })}
-            />
-          </label>
+          <div className="notice">
+            지도는 아래 장소의 이름과 정확한 주소를 기준으로 자동 생성됩니다.
+            경로를 바꿀 때는 장소를 추가·삭제하거나 순서를 조정한 뒤 저장하세요.
+          </div>
 
           <label>
             개인 메모
@@ -297,6 +322,133 @@ export default function AdminCloud() {
             />
           </label>
         </div>
+
+        <h2 className="sectionTitle">장소 기반 경로</h2>
+        <div className="notice" style={{ marginBottom: 12 }}>
+          장소 순서가 오늘의 경로와 Google Maps 동선에 자동 반영됩니다.
+          정확한 주소를 입력할수록 지도가 안정적으로 열립니다.
+        </div>
+
+        {(data.places || []).map((place, i) => (
+          <div className="editor placeEditor" key={place.id}>
+            <div className="placeEditorTop">
+              <strong>{i + 1}. {place.name || "새 장소"}</strong>
+              <div className="placeMoveActions">
+                <button
+                  type="button"
+                  className="btn soft compact"
+                  disabled={i === 0}
+                  onClick={() => movePlace(i, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="btn soft compact"
+                  disabled={i === (data.places || []).length - 1}
+                  onClick={() => movePlace(i, 1)}
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
+
+            <input
+              value={place.name}
+              placeholder="장소 이름"
+              onChange={(e) =>
+                updatePlaces((data.places || []).map((v, n) =>
+                  n === i ? { ...v, name: e.target.value } : v
+                ))
+              }
+            />
+            <input
+              value={place.address}
+              placeholder="정확한 주소 · 예: Museumstraat 1, Amsterdam"
+              onChange={(e) =>
+                updatePlaces((data.places || []).map((v, n) =>
+                  n === i ? { ...v, address: e.target.value } : v
+                ))
+              }
+            />
+
+            <div className="row placeMetaRow">
+              <input
+                value={place.time}
+                placeholder="시간"
+                onChange={(e) =>
+                  updatePlaces((data.places || []).map((v, n) =>
+                    n === i ? { ...v, time: e.target.value } : v
+                  ))
+                }
+              />
+              <select
+                value={place.period}
+                onChange={(e) =>
+                  updatePlaces((data.places || []).map((v, n) =>
+                    n === i
+                      ? { ...v, period: e.target.value as PlaceItem["period"] }
+                      : v
+                  ))
+                }
+              >
+                <option value="morning">오전 동선</option>
+                <option value="afternoon">오후 동선</option>
+              </select>
+            </div>
+
+            <div className="row placeMetaRow">
+              <input
+                value={place.category}
+                placeholder="분류 · 호텔/미술관/식당"
+                onChange={(e) =>
+                  updatePlaces((data.places || []).map((v, n) =>
+                    n === i ? { ...v, category: e.target.value } : v
+                  ))
+                }
+              />
+              <select
+                value={place.travelMode}
+                onChange={(e) =>
+                  updatePlaces((data.places || []).map((v, n) =>
+                    n === i
+                      ? { ...v, travelMode: e.target.value as PlaceItem["travelMode"] }
+                      : v
+                  ))
+                }
+              >
+                <option value="walking">도보</option>
+                <option value="transit">대중교통</option>
+                <option value="driving">자동차</option>
+                <option value="bicycling">자전거</option>
+              </select>
+            </div>
+
+            <textarea
+              value={place.note || ""}
+              placeholder="장소 메모"
+              onChange={(e) =>
+                updatePlaces((data.places || []).map((v, n) =>
+                  n === i ? { ...v, note: e.target.value } : v
+                ))
+              }
+            />
+
+            <button
+              type="button"
+              className="btn danger"
+              onClick={() =>
+                updatePlaces((data.places || []).filter((_, n) => n !== i))
+              }
+            >
+              장소 삭제
+            </button>
+          </div>
+        ))}
+
+        <button type="button" className="btn soft" onClick={addPlace}>
+          + 새 장소 추가
+        </button>
 
         <h2 className="sectionTitle">핵심 관전 포인트</h2>
         {data.highlights.map((x, i) => (

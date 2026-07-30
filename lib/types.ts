@@ -25,6 +25,20 @@ export type BudgetItem = {
   amount: string;
 };
 
+export type PlacePeriod = "morning" | "afternoon";
+export type TravelMode = "walking" | "transit" | "driving" | "bicycling";
+
+export type PlaceItem = {
+  id: string;
+  name: string;
+  address: string;
+  time: string;
+  period: PlacePeriod;
+  category: string;
+  travelMode: TravelMode;
+  note?: string;
+};
+
 export type TripDay = {
   day: number;
   date: string;
@@ -42,6 +56,7 @@ export type TripDay = {
   mapUrl: string;
   morningMapUrl?: string;
   afternoonMapUrl?: string;
+  places?: PlaceItem[];
   notes: string;
   checklist: string[];
   schedule: ScheduleItem[];

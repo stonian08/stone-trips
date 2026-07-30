@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { defaultDays } from "../lib/defaultData";
 import { loadDaysFromCloud } from "../lib/cloudStorage";
+import { createDirectionsUrl, createPlaceMapUrl, placesForPeriod, routeFromPlaces } from "../lib/routeUtils";
 import { TripDay } from "../lib/types";
 
 export default function DayView({ day }: { day: number }) {
@@ -24,6 +25,18 @@ export default function DayView({ day }: { day: number }) {
   if (loading) {
     return <main className="shell loading">DAY {day} 정보를 불러오는 중...</main>;
   }
+
+  const places = data.places || [];
+  const morningPlaces = placesForPeriod(places, "morning");
+  const afternoonPlaces = placesForPeriod(places, "afternoon");
+  const route = places.length > 0 ? routeFromPlaces(places) : data.route;
+  const morningMapUrl = morningPlaces.length > 0
+    ? createDirectionsUrl(morningPlaces)
+    : data.morningMapUrl || "";
+  const afternoonMapUrl = afternoonPlaces.length > 0
+    ? createDirectionsUrl(afternoonPlaces)
+    : data.afternoonMapUrl || "";
+  const wholeMapUrl = places.length > 0 ? createDirectionsUrl(places) : data.mapUrl;
 
   return (
     <main className="shell">
@@ -49,7 +62,7 @@ export default function DayView({ day }: { day: number }) {
       <section className="content">
         <article className="card">
           <strong>오늘의 경로</strong>
-          <div className="route">{data.route}</div>
+          <div className="route">{route}</div>
         </article>
 
         <article className="card">
@@ -58,6 +71,32 @@ export default function DayView({ day }: { day: number }) {
             {data.highlights.map((x, i) => <span className="tag" key={i}>{x}</span>)}
           </div>
         </article>
+
+        {places.length > 0 && (
+          <>
+            <h2 className="sectionTitle">오늘의 장소</h2>
+            <article className="card placeList">
+              {places.map((place, i) => (
+                <div className="placeRow" key={place.id}>
+                  <div className="placeIndex">{i + 1}</div>
+                  <div className="placeBody">
+                    <strong>{place.time && `${place.time} · `}{place.name}</strong>
+                    <div className="small">{place.address}</div>
+                    {place.note && <div className="small">{place.note}</div>}
+                  </div>
+                  <a
+                    className="btn soft compact"
+                    target="_blank"
+                    rel="noreferrer"
+                    href={createPlaceMapUrl(place)}
+                  >
+                    지도
+                  </a>
+                </div>
+              ))}
+            </article>
+          </>
+        )}
 
         <h2 className="sectionTitle">오늘 일정</h2>
         <article className="card timeline">
@@ -75,19 +114,12 @@ export default function DayView({ day }: { day: number }) {
         <article className="card">
           <h3>🍽️ 맛집·카페</h3>
           {data.food.map((x, i) => (
-            <div className="infoRow foodRow" key={i}>
-              <div>
-                <strong>{x.name}</strong>
-                <div className="small">{x.type} · {x.note}</div>
-              </div>
+            <div className="infoRow" key={i}>
+              <strong>{x.name}</strong>
+              <div className="small">{x.type} · {x.note}</div>
               {x.mapUrl && (
-                <a
-                  className="btn soft placeMapBtn"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={x.mapUrl}
-                >
-                  📍 지도
+                <a className="inlineMapLink" target="_blank" rel="noreferrer" href={x.mapUrl}>
+                  개별 지도 보기
                 </a>
               )}
             </div>
@@ -119,38 +151,20 @@ export default function DayView({ day }: { day: number }) {
         <article className="card">
           <h3>🚆 교통 안내</h3>
           <p className="small">{data.transport}</p>
-
           <div className="mapActions">
-            {data.morningMapUrl && (
-              <a
-                className="btn primary mapBtn"
-                target="_blank"
-                rel="noreferrer"
-                href={data.morningMapUrl}
-              >
-                ☀️ 오전 동선 지도
+            {morningMapUrl && (
+              <a className="btn primary mapBtn" target="_blank" rel="noreferrer" href={morningMapUrl}>
+                오전 동선 지도
               </a>
             )}
-
-            {data.afternoonMapUrl && (
-              <a
-                className="btn soft mapBtn"
-                target="_blank"
-                rel="noreferrer"
-                href={data.afternoonMapUrl}
-              >
-                🌆 오후 동선 지도
+            {afternoonMapUrl && (
+              <a className="btn soft mapBtn" target="_blank" rel="noreferrer" href={afternoonMapUrl}>
+                오후 동선 지도
               </a>
             )}
-
-            {!data.morningMapUrl && !data.afternoonMapUrl && data.mapUrl && (
-              <a
-                className="btn primary mapBtn"
-                target="_blank"
-                rel="noreferrer"
-                href={data.mapUrl}
-              >
-                🗺️ 전체 동선 지도
+            {!morningMapUrl && !afternoonMapUrl && wholeMapUrl && (
+              <a className="btn primary mapBtn" target="_blank" rel="noreferrer" href={wholeMapUrl}>
+                전체 동선 지도
               </a>
             )}
           </div>
