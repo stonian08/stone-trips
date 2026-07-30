@@ -11,7 +11,7 @@ import {
 import { uploadTripImage } from "../lib/imageStorage";
 import { supabase } from "../lib/supabase";
 import {
-  createDirectionsUrls,
+  createDirectionsSections,
   createPlaceMapUrl,
   placesForPeriod,
   routeFromPlaces,
@@ -61,9 +61,9 @@ export default function AdminCloud() {
   const places = data.places || [];
   const morningPlaces = placesForPeriod(places, "morning");
   const afternoonPlaces = placesForPeriod(places, "afternoon");
-  const wholeRouteUrls = createDirectionsUrls(places);
-  const morningRouteUrls = createDirectionsUrls(morningPlaces);
-  const afternoonRouteUrls = createDirectionsUrls(afternoonPlaces);
+  const wholeRouteSections = createDirectionsSections(places);
+  const morningRouteSections = createDirectionsSections(morningPlaces);
+  const afternoonRouteSections = createDirectionsSections(afternoonPlaces);
   const missingAddressCount = places.filter((place) => !place.address.trim()).length;
 
   const update = (patch: Partial<TripDay>) => {
@@ -210,7 +210,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5.1</div>
+        <div className="brand">CLOUD EDITOR · STAGE 5.2</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -372,19 +372,19 @@ export default function AdminCloud() {
             </div>
           )}
           <div className="routePreviewActions">
-            {wholeRouteUrls.map((url, index) => (
-              <a key={`whole-${index}`} className="btn primary" target="_blank" rel="noreferrer" href={url}>
-                전체 동선{wholeRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+            {wholeRouteSections.map((section, index) => (
+              <a key={`whole-${index}`} className="btn primary" target="_blank" rel="noreferrer" href={section.url}>
+                전체 동선{wholeRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
               </a>
             ))}
-            {morningRouteUrls.map((url, index) => (
-              <a key={`morning-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
-                오전 동선{morningRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+            {morningRouteSections.map((section, index) => (
+              <a key={`morning-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={section.url}>
+                오전 동선{morningRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
               </a>
             ))}
-            {afternoonRouteUrls.map((url, index) => (
-              <a key={`afternoon-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={url}>
-                오후 동선{afternoonRouteUrls.length > 1 ? ` ${index + 1}` : ""}
+            {afternoonRouteSections.map((section, index) => (
+              <a key={`afternoon-${index}`} className="btn soft" target="_blank" rel="noreferrer" href={section.url}>
+                오후 동선{afternoonRouteSections.length > 1 ? ` ${index + 1}` : ""} · {section.mode === "walking" ? "도보" : section.mode === "transit" ? "대중교통" : section.mode === "driving" ? "자동차" : "자전거"}
               </a>
             ))}
           </div>
