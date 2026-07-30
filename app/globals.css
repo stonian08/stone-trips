@@ -9,3 +9,23 @@
 
 /* Stage 5.5 · route creation and editing tools */
 .routeToolsCard{background:linear-gradient(145deg,#f7fbff,#fff);border-color:#cbdde9}.routeToolsCard>p{margin:8px 0 12px}.routeToolGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.copyRouteRow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}.copyRouteRow select{min-width:0}.placeCardActions{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:420px){.routeToolGrid,.copyRouteRow,.placeCardActions{grid-template-columns:1fr}}
+
+.periodAutoLabel {
+  min-height: 58px;
+  border: 1px solid #cfddea;
+  border-radius: 16px;
+  background: #f4f8fb;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 14px;
+  font-weight: 800;
+  color: #0b3558;
+}
+
+.periodAutoLabel span {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c7b88;
+}

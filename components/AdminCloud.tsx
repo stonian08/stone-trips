@@ -72,7 +72,6 @@ export default function AdminCloud() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draggedPlaceIndex, setDraggedPlaceIndex] = useState<number | null>(null);
-  const [copyFromDay, setCopyFromDay] = useState(1);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -135,65 +134,6 @@ export default function AdminCloud() {
   };
 
 
-  const duplicatePlace = (index: number) => {
-    const source = (data.places || [])[index];
-    if (!source) return;
-    const nextPlaces = [...(data.places || [])];
-    nextPlaces.splice(index + 1, 0, {
-      ...source,
-      id: crypto.randomUUID(),
-      name: `${source.name} 복사본`,
-    });
-    updatePlaces(nextPlaces);
-  };
-
-  const classifyPeriodsByTime = () => {
-    updatePlaces((data.places || []).map((place) => {
-      const period = periodFromTime(place.time);
-      return period ? { ...place, period } : place;
-    }));
-  };
-
-  const sortPlacesByTime = () => {
-    const indexed = (data.places || []).map((place, index) => ({ place, index }));
-    indexed.sort((a, b) => {
-      const aMinutes = minutesFromTime(a.place.time);
-      const bMinutes = minutesFromTime(b.place.time);
-      if (aMinutes === null && bMinutes === null) return a.index - b.index;
-      if (aMinutes === null) return 1;
-      if (bMinutes === null) return -1;
-      return aMinutes - bMinutes || a.index - b.index;
-    });
-    updatePlaces(indexed.map(({ place }) => place));
-  };
-
-  const replaceScheduleFromPlaces = () => {
-    const nextSchedule = scheduleFromPlaces(data.places || []);
-    if (nextSchedule.length === 0) {
-      setError("일정으로 반영할 장소가 없습니다.");
-      return;
-    }
-    if (data.schedule.length > 0 && !confirm("현재 시간별 일정을 장소 목록으로 교체할까요?")) return;
-    update({ schedule: nextSchedule });
-  };
-
-  const startNewRoute = () => {
-    if ((data.places || []).length > 0 && !confirm("DAY의 기존 장소 경로를 모두 지우고 새 경로를 만들까요?")) return;
-    update({ places: [], route: "", mapUrl: "", morningMapUrl: "", afternoonMapUrl: "" });
-  };
-
-  const copyRoute = () => {
-    const source = days.find((day) => day.day === copyFromDay);
-    if (!source || source.day === selected) return;
-    const sourcePlaces = source.places || [];
-    if (sourcePlaces.length === 0) {
-      setError(`DAY ${copyFromDay}에 복사할 장소가 없습니다.`);
-      return;
-    }
-    if ((data.places || []).length > 0 && !confirm(`현재 경로를 DAY ${copyFromDay} 경로로 교체할까요?`)) return;
-    updatePlaces(sourcePlaces.map((place) => ({ ...place, id: crypto.randomUUID() })));
-  };
-
   const movePlace = (index: number, direction: -1 | 1) => {
     const places = [...(data.places || [])];
     const nextIndex = index + direction;
@@ -239,7 +179,21 @@ export default function AdminCloud() {
     setError("");
 
     try {
-      await saveDaysToCloud(days);
+      const normalizedDays = days.map((day) => {
+        const normalizedPlaces = (day.places || []).map((place) => {
+          const automaticPeriod = periodFromTime(place.time);
+          return automaticPeriod ? { ...place, period: automaticPeriod } : place;
+        });
+
+        return syncDayFromPlaces({
+          ...day,
+          places: normalizedPlaces,
+          schedule: scheduleFromPlaces(normalizedPlaces),
+        });
+      });
+
+      setDays(normalizedDays);
+      await saveDaysToCloud(normalizedDays);
       setSaved(true);
       setTimeout(() => setSaved(false), 2200);
     } catch (e) {
@@ -453,8 +407,8 @@ export default function AdminCloud() {
 
         <h2 className="sectionTitle">장소 기반 경로</h2>
         <div className="notice" style={{ marginBottom: 12 }}>
-          장소가 경로의 기준 데이터입니다. 장소 추가·삭제·순서 변경 즉시 오늘의 경로와
-          지도 미리보기가 함께 바뀝니다. 저장하면 사용자 화면에도 그대로 반영됩니다.
+          장소를 추가·삭제하거나 순서를 바꾸고 저장하면 일정과 전체·오전·오후 지도가 자동으로 갱신됩니다.
+          오전·오후는 입력한 시간을 기준으로 자동 분류됩니다.
         </div>
 
         <div className="card routePreviewCard">
@@ -487,25 +441,6 @@ export default function AdminCloud() {
                 오후 동선{afternoonRouteUrls.length > 1 ? ` ${index + 1}` : ""}
               </a>
             ))}
-          </div>
-        </div>
-
-        <div className="card routeToolsCard">
-          <strong>경로 편집 도구</strong>
-          <p className="small">새 경로를 만들거나 다른 DAY의 경로를 복사하고, 입력 시간 기준으로 순서를 정리할 수 있습니다.</p>
-          <div className="routeToolGrid">
-            <button type="button" className="btn soft" onClick={classifyPeriodsByTime}>시간 기준 오전·오후 분류</button>
-            <button type="button" className="btn soft" onClick={sortPlacesByTime}>시간순 정렬</button>
-            <button type="button" className="btn soft" onClick={replaceScheduleFromPlaces}>장소를 일정에 반영</button>
-            <button type="button" className="btn danger" onClick={startNewRoute}>새 경로 만들기</button>
-          </div>
-          <div className="copyRouteRow">
-            <select value={copyFromDay} onChange={(e) => setCopyFromDay(Number(e.target.value))}>
-              {days.filter((day) => day.day !== selected).map((day) => (
-                <option key={day.day} value={day.day}>DAY {day.day} · {day.title}</option>
-              ))}
-            </select>
-            <button type="button" className="btn primary" onClick={copyRoute}>이 DAY 경로 복사</button>
           </div>
         </div>
 
@@ -566,26 +501,21 @@ export default function AdminCloud() {
             <div className="row placeMetaRow">
               <input
                 value={place.time}
-                placeholder="시간"
-                onChange={(e) =>
-                  updatePlaces((data.places || []).map((v, n) =>
-                    n === i ? { ...v, time: e.target.value } : v
-                  ))
-                }
-              />
-              <select
-                value={place.period}
-                onChange={(e) =>
+                placeholder="시간 · 예: 09:30"
+                onChange={(e) => {
+                  const time = e.target.value;
+                  const automaticPeriod = periodFromTime(time);
                   updatePlaces((data.places || []).map((v, n) =>
                     n === i
-                      ? { ...v, period: e.target.value as PlaceItem["period"] }
+                      ? { ...v, time, period: automaticPeriod || v.period }
                       : v
-                  ))
-                }
-              >
-                <option value="morning">오전 동선</option>
-                <option value="afternoon">오후 동선</option>
-              </select>
+                  ));
+                }}
+              />
+              <div className="periodAutoLabel">
+                {place.period === "morning" ? "오전 지도" : "오후 지도"}
+                <span>시간으로 자동 분류</span>
+              </div>
             </div>
 
             <div className="row placeMetaRow">
@@ -634,9 +564,6 @@ export default function AdminCloud() {
               >
                 개별 지도
               </a>
-              <button type="button" className="btn soft" onClick={() => duplicatePlace(i)}>
-                장소 복제
-              </button>
               <button
                 type="button"
                 className="btn danger"
