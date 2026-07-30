@@ -17,7 +17,46 @@ import {
   routeFromPlaces,
   syncDayFromPlaces,
 } from "../lib/routeUtils";
-import { PlaceItem, TripDay } from "../lib/types";
+import { PlaceItem, ScheduleItem, TripDay } from "../lib/types";
+
+function iconForPlace(place: PlaceItem): string {
+  const value = `${place.category} ${place.name}`.toLowerCase();
+  if (value.includes("hotel") || value.includes("숙소")) return "🏨";
+  if (value.includes("museum") || value.includes("미술관") || value.includes("박물관")) return "🖼️";
+  if (value.includes("restaurant") || value.includes("식당") || value.includes("카페") || value.includes("food")) return "🍽️";
+  if (value.includes("airport") || value.includes("공항")) return "✈️";
+  if (value.includes("station") || value.includes("역")) return "🚉";
+  if (value.includes("shopping") || value.includes("시장") || value.includes("쇼핑")) return "🛍️";
+  if (value.includes("park") || value.includes("공원")) return "🌿";
+  return "📍";
+}
+
+function scheduleFromPlaces(places: PlaceItem[]): ScheduleItem[] {
+  return places
+    .filter((place) => place.name.trim() || place.address.trim())
+    .map((place) => ({
+      id: `place-${place.id}`,
+      time: place.time.trim(),
+      title: place.name.trim() || place.address.trim(),
+      description: [place.note?.trim(), place.address.trim()].filter(Boolean).join(" · "),
+      icon: iconForPlace(place),
+    }));
+}
+
+function minutesFromTime(time: string): number | null {
+  const match = time.trim().match(/^(\d{1,2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2] || 0);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+function periodFromTime(time: string): PlaceItem["period"] | null {
+  const minutes = minutesFromTime(time);
+  if (minutes === null) return null;
+  return minutes < 12 * 60 ? "morning" : "afternoon";
+}
 
 export default function AdminCloud() {
   const [sessionReady, setSessionReady] = useState(false);
@@ -33,6 +72,7 @@ export default function AdminCloud() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draggedPlaceIndex, setDraggedPlaceIndex] = useState<number | null>(null);
+  const [copyFromDay, setCopyFromDay] = useState(1);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -92,6 +132,66 @@ export default function AdminCloud() {
         note: "",
       },
     ]);
+  };
+
+
+  const duplicatePlace = (index: number) => {
+    const source = (data.places || [])[index];
+    if (!source) return;
+    const nextPlaces = [...(data.places || [])];
+    nextPlaces.splice(index + 1, 0, {
+      ...source,
+      id: crypto.randomUUID(),
+      name: `${source.name} 복사본`,
+    });
+    updatePlaces(nextPlaces);
+  };
+
+  const classifyPeriodsByTime = () => {
+    updatePlaces((data.places || []).map((place) => {
+      const period = periodFromTime(place.time);
+      return period ? { ...place, period } : place;
+    }));
+  };
+
+  const sortPlacesByTime = () => {
+    const indexed = (data.places || []).map((place, index) => ({ place, index }));
+    indexed.sort((a, b) => {
+      const aMinutes = minutesFromTime(a.place.time);
+      const bMinutes = minutesFromTime(b.place.time);
+      if (aMinutes === null && bMinutes === null) return a.index - b.index;
+      if (aMinutes === null) return 1;
+      if (bMinutes === null) return -1;
+      return aMinutes - bMinutes || a.index - b.index;
+    });
+    updatePlaces(indexed.map(({ place }) => place));
+  };
+
+  const replaceScheduleFromPlaces = () => {
+    const nextSchedule = scheduleFromPlaces(data.places || []);
+    if (nextSchedule.length === 0) {
+      setError("일정으로 반영할 장소가 없습니다.");
+      return;
+    }
+    if (data.schedule.length > 0 && !confirm("현재 시간별 일정을 장소 목록으로 교체할까요?")) return;
+    update({ schedule: nextSchedule });
+  };
+
+  const startNewRoute = () => {
+    if ((data.places || []).length > 0 && !confirm("DAY의 기존 장소 경로를 모두 지우고 새 경로를 만들까요?")) return;
+    update({ places: [], route: "", mapUrl: "", morningMapUrl: "", afternoonMapUrl: "" });
+  };
+
+  const copyRoute = () => {
+    const source = days.find((day) => day.day === copyFromDay);
+    if (!source || source.day === selected) return;
+    const sourcePlaces = source.places || [];
+    if (sourcePlaces.length === 0) {
+      setError(`DAY ${copyFromDay}에 복사할 장소가 없습니다.`);
+      return;
+    }
+    if ((data.places || []).length > 0 && !confirm(`현재 경로를 DAY ${copyFromDay} 경로로 교체할까요?`)) return;
+    updatePlaces(sourcePlaces.map((place) => ({ ...place, id: crypto.randomUUID() })));
   };
 
   const movePlace = (index: number, direction: -1 | 1) => {
@@ -210,7 +310,7 @@ export default function AdminCloud() {
     <main className="shell">
       <header className="top">
         <Link className="btn soft" href={`/day/${selected}`}>미리보기</Link>
-        <div className="brand">CLOUD EDITOR · STAGE 5.4</div>
+        <div className="brand">CLOUD EDITOR · STAGE 5.5</div>
         <button
           className="btn soft"
           onClick={async () => {
@@ -390,6 +490,25 @@ export default function AdminCloud() {
           </div>
         </div>
 
+        <div className="card routeToolsCard">
+          <strong>경로 편집 도구</strong>
+          <p className="small">새 경로를 만들거나 다른 DAY의 경로를 복사하고, 입력 시간 기준으로 순서를 정리할 수 있습니다.</p>
+          <div className="routeToolGrid">
+            <button type="button" className="btn soft" onClick={classifyPeriodsByTime}>시간 기준 오전·오후 분류</button>
+            <button type="button" className="btn soft" onClick={sortPlacesByTime}>시간순 정렬</button>
+            <button type="button" className="btn soft" onClick={replaceScheduleFromPlaces}>장소를 일정에 반영</button>
+            <button type="button" className="btn danger" onClick={startNewRoute}>새 경로 만들기</button>
+          </div>
+          <div className="copyRouteRow">
+            <select value={copyFromDay} onChange={(e) => setCopyFromDay(Number(e.target.value))}>
+              {days.filter((day) => day.day !== selected).map((day) => (
+                <option key={day.day} value={day.day}>DAY {day.day} · {day.title}</option>
+              ))}
+            </select>
+            <button type="button" className="btn primary" onClick={copyRoute}>이 DAY 경로 복사</button>
+          </div>
+        </div>
+
         {places.map((place, i) => (
           <div
             className={`editor placeEditor ${draggedPlaceIndex === i ? "dragging" : ""}`}
@@ -515,6 +634,9 @@ export default function AdminCloud() {
               >
                 개별 지도
               </a>
+              <button type="button" className="btn soft" onClick={() => duplicatePlace(i)}>
+                장소 복제
+              </button>
               <button
                 type="button"
                 className="btn danger"
