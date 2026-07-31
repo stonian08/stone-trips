@@ -1,7 +1,7 @@
 import { PlaceItem, PlacePeriod, TravelMode, TripDay } from "./types";
 
 const GOOGLE_SEARCH = "https://www.google.com/maps/search/?api=1";
-const MAX_PLACES_PER_ROUTE = 5;
+const MAX_PLACES_PER_ROUTE = 8;
 
 function hasLocation(place: PlaceItem): boolean {
   return Boolean(place.name.trim() || place.address.trim());
