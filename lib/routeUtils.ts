@@ -11,6 +11,10 @@ function placeQuery(place: PlaceItem): string {
   return [place.name.trim(), place.address.trim()].filter(Boolean).join(", ");
 }
 
+function normalizedPlaceKey(place: PlaceItem): string {
+  return placeQuery(place).trim().toLocaleLowerCase();
+}
+
 export function createPlaceMapUrl(place: PlaceItem): string {
   const query = placeQuery(place);
   return query ? `${GOOGLE_SEARCH}&query=${encodeURIComponent(query)}` : "";
@@ -42,10 +46,10 @@ function createSingleDirectionsUrl(
 }
 
 /**
- * travelMode is interpreted as "the mode used to arrive at this place".
- * Therefore the leg from places[i - 1] to places[i] uses places[i].travelMode.
- * Google Maps accepts only one travel mode per directions URL, so mixed-mode
- * itineraries are split at each mode change while repeating the boundary stop.
+ * travelMode means "the mode used to arrive at this place".
+ * The leg from places[i - 1] to places[i] therefore uses places[i].travelMode.
+ * Because one Google Maps directions URL supports one mode, mode changes create
+ * a new section and the boundary stop is repeated to keep the route connected.
  */
 function splitByTravelMode(places: PlaceItem[]): Array<{
   places: PlaceItem[];
@@ -57,7 +61,11 @@ function splitByTravelMode(places: PlaceItem[]): Array<{
   let sectionStart = 0;
   let currentMode: TravelMode = places[1].travelMode || "walking";
 
-  for (let destinationIndex = 2; destinationIndex < places.length; destinationIndex += 1) {
+  for (
+    let destinationIndex = 2;
+    destinationIndex < places.length;
+    destinationIndex += 1
+  ) {
     const legMode = places[destinationIndex].travelMode || "walking";
     if (legMode !== currentMode) {
       sections.push({
@@ -81,32 +89,49 @@ function splitLongSection(places: PlaceItem[]): PlaceItem[][] {
 
   while (start < places.length - 1) {
     const end = Math.min(start + MAX_PLACES_PER_ROUTE, places.length);
-    chunks.push(places.slice(start, end));
+    const chunk = places.slice(start, end);
+
+    if (chunk.length >= 2) chunks.push(chunk);
+    if (end >= places.length) break;
+
+    // Repeat only the final stop so the next map continues from that point.
     start = end - 1;
   }
 
   return chunks;
 }
 
+function removeConsecutiveDuplicatePlaces(places: PlaceItem[]): PlaceItem[] {
+  return places.filter((place, index) => {
+    if (index === 0) return true;
+    return normalizedPlaceKey(place) !== normalizedPlaceKey(places[index - 1]);
+  });
+}
+
+function uniqueUrls(urls: string[]): string[] {
+  return [...new Set(urls.filter(Boolean))];
+}
+
 /**
- * Creates reliable Google Maps links from the current place order.
+ * Generates Google Maps links from the current place order for every DAY.
  * - Empty stops are ignored.
- * - One stop opens a place search.
- * - Mixed transportation modes become separate route links.
- * - Long sections are split to avoid unstable mobile waypoint handling.
+ * - Accidental consecutive duplicate stops are removed.
+ * - Mixed transportation modes are split into connected route sections.
+ * - Long sections are split with one shared boundary stop.
+ * - Identical generated links are removed before rendering buttons.
  */
 export function createDirectionsUrls(places: PlaceItem[]): string[] {
-  const validPlaces = places.filter(hasLocation);
+  const validPlaces = removeConsecutiveDuplicatePlaces(places.filter(hasLocation));
   if (validPlaces.length === 0) return [];
   if (validPlaces.length === 1) return [createPlaceMapUrl(validPlaces[0])];
 
-  return splitByTravelMode(validPlaces)
-    .flatMap((section) =>
-      splitLongSection(section.places).map((chunk) =>
-        createSingleDirectionsUrl(chunk, section.mode)
-      )
+  const urls = splitByTravelMode(validPlaces).flatMap((section) =>
+    splitLongSection(section.places).map((chunk) =>
+      createSingleDirectionsUrl(chunk, section.mode)
     )
-    .filter(Boolean);
+  );
+
+  return uniqueUrls(urls);
 }
 
 /** Backward-compatible helper that returns the first generated route link. */
@@ -118,7 +143,9 @@ export function placesForPeriod(
   places: PlaceItem[] | undefined,
   period: PlacePeriod
 ): PlaceItem[] {
-  return (places || []).filter((place) => place.period === period && hasLocation(place));
+  return (places || []).filter(
+    (place) => place.period === period && hasLocation(place)
+  );
 }
 
 export function routeFromPlaces(places: PlaceItem[] | undefined): string {
@@ -132,8 +159,8 @@ export function syncDayFromPlaces(day: TripDay): TripDay {
   const places = day.places || [];
   if (places.length === 0) return day;
 
-  // Places are the single source of truth. Legacy static URL fields are kept
-  // empty so an old saved link cannot override the newly generated route.
+  // Places are the single source of truth. Old saved map fields are cleared so
+  // the UI always regenerates whole/morning/afternoon maps from current places.
   return {
     ...day,
     route: routeFromPlaces(places),
