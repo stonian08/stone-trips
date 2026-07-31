@@ -174,7 +174,9 @@ export default function DayView({ day }: { day: number }) {
 
         <article className="card tip">
           <h3>💡 여행 TIP</h3>
-          <p className="small">{data.tip}</p>
+          <p className="small" style={{ whiteSpace: "pre-line" }}>
+  {data.tip}
+</p>
         </article>
 
         <article className="card">
