@@ -189,7 +189,9 @@ export default function DayView({ day }: { day: number }) {
         {data.notes && (
           <article className="card">
             <h3>📝 개인 메모</h3>
-            <p className="small">{data.notes}</p>
+            <p className="small" style={{ whiteSpace: "pre-line" }}>
+  {data.notes}
+</p>
           </article>
         )}
       </section>
