@@ -62,7 +62,7 @@ export default function DayView({ day }: { day: number }) {
       </section>
 
       <section className="content">
-        <article className="card">
+        <article className="card" style={{ display: "none" }}>
           <strong>오늘의 경로</strong>
           <div className="route">{route}</div>
         </article>
@@ -74,7 +74,7 @@ export default function DayView({ day }: { day: number }) {
           </div>
         </article>
 
-        {false && (
+        {places.length > 0 && (
           <>
             <h2 className="sectionTitle">오늘의 장소</h2>
             <article className="card placeList">
