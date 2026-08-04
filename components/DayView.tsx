@@ -84,8 +84,11 @@ export default function DayView({ day }: { day: number }) {
                   <div className="placeBody">
                     <strong>{place.time && `${place.time} · `}{place.name}</strong>
                     <div className="small">{place.address}</div>
-                    {place.note && <div className="small">{place.note}</div>}
-                  </div>
+                    {place.note && (
+  <div className="small" style={{ whiteSpace: "pre-line" }}>
+    {place.note}
+  </div>
+)}
                   <a
                     className="btn soft compact"
                     target="_blank"
@@ -100,8 +103,8 @@ export default function DayView({ day }: { day: number }) {
           </>
         )}
 
-        <h2 className="sectionTitle">오늘 일정</h2>
-        <article className="card timeline">
+        <h2 className="sectionTitle" style={{ display: "none" }}>오늘 일정</h2>
+<article className="card timeline" style={{ display: "none" }}>
           {data.schedule.map((x) => (
             <div className="event" key={x.id}>
               <div className="dot">{x.icon}</div>
