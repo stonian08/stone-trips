@@ -62,7 +62,7 @@ export default function DayView({ day }: { day: number }) {
       </section>
 
       <section className="content">
-        <article className="card" style={{ display: "none" }}>
+        <article className="card" >
           <strong>오늘의 경로</strong>
           <div className="route">{route}</div>
         </article>
@@ -77,18 +77,35 @@ export default function DayView({ day }: { day: number }) {
         {places.length > 0 && (
   <div>
 
-        <h2 className="sectionTitle" style={{ display: "none" }}>오늘 일정</h2>
-<article className="card timeline" style={{ display: "none" }}>
-          {data.schedule.map((x) => (
-            <div className="event" key={x.id}>
-              <div className="dot">{x.icon}</div>
-              <div>
-                <h3>{x.time} · {x.title}</h3>
-                <p>{x.description}</p>
-              </div>
-            </div>
-          ))}
-        </article>
+        <h2 className="sectionTitle">오늘의 장소</h2>
+
+<article className="card">
+  {places.map((place, i) => (
+    <div className="infoRow" key={place.id}>
+      <strong>
+        {place.time && `${place.time} · `}
+        {place.name}
+      </strong>
+
+      <div className="small">{place.address}</div>
+
+      {place.note && (
+        <div className="small" style={{ whiteSpace: "pre-line" }}>
+          {place.note}
+        </div>
+      )}
+
+      <a
+        className="inlineMapLink"
+        target="_blank"
+        rel="noreferrer"
+        href={createPlaceMapUrl(place)}
+      >
+        지도
+      </a>
+    </div>
+  ))}
+</article>
 
         <article className="card">
           <h3>🍽️ 맛집·카페</h3>
