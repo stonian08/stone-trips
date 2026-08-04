@@ -75,33 +75,7 @@ export default function DayView({ day }: { day: number }) {
         </article>
 
         {places.length > 0 && (
-          <>
-            <h2 className="sectionTitle">오늘의 장소</h2>
-            <article className="card placeList">
-              {places.map((place, i) => (
-                <div className="placeRow" key={place.id}>
-                  <div className="placeIndex">{i + 1}</div>
-                  <div className="placeBody">
-                    <strong>{place.time && `${place.time} · `}{place.name}</strong>
-                    <div className="small">{place.address}</div>
-                    {place.note && (
-  <div className="small" style={{ whiteSpace: "pre-line" }}>
-    {place.note}
-  </div>
-)}
-                  <a
-                    className="btn soft compact"
-                    target="_blank"
-                    rel="noreferrer"
-                    href={createPlaceMapUrl(place)}
-                  >
-                    지도
-                  </a>
-                </div>
-              ))}
-            </article>
-          </>
-        )}
+  <div>
 
         <h2 className="sectionTitle" style={{ display: "none" }}>오늘 일정</h2>
 <article className="card timeline" style={{ display: "none" }}>
@@ -130,7 +104,8 @@ export default function DayView({ day }: { day: number }) {
             </div>
           ))}
         </article>
-
+</div>
+)}
         <article className="card">
           <h3>🎫 예약정보</h3>
           {data.reservations.map((x, i) => (
